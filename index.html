@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Pilz Prognose – Wahrscheinlichkeit für Pilzfunde in Deutschland</title>
+  <meta name="description" content="Abstrahierte Deutschlandkarte: aktueller Pilz-Wetter-Score je DWD-Wetterstation als Region eingefärbt, umschaltbar zwischen allen Pilzen und Steinpilz." />
+  <link rel="stylesheet" href="style.css?v=4" />
+</head>
+<body>
+  <header id="topbar">
+    <div class="brand">
+      <h1>🍄 Pilz Prognose</h1>
+      <p class="tag">Eingefärbt nach Wahrscheinlichkeit für Pilzfunde</p>
+    </div>
+
+    <div class="switch" role="tablist" aria-label="Modell">
+      <button id="btn-g" class="active" role="tab" aria-selected="true">Alle Pilze</button>
+      <button id="btn-s" role="tab" aria-selected="false">Steinpilz</button>
+    </div>
+
+    <div class="legend" aria-hidden="true">
+      <span class="lg-lo">0</span>
+      <span class="lg-bar"></span>
+      <span class="lg-hi">5</span>
+      <span class="lg-cap">Wetter</span>
+    </div>
+
+    <button id="help-btn" class="help-btn">Wie funktioniert das?</button>
+  </header>
+
+  <div id="map">
+    <svg id="mapsvg" preserveAspectRatio="xMidYMid meet" role="img"
+         aria-label="Pilz-Wetter-Score je Region in Deutschland"></svg>
+    <div id="tooltip" hidden></div>
+    <aside id="detail" hidden>
+      <button id="detail-close" aria-label="Schließen">×</button>
+      <h3 id="d-name"></h3>
+      <p id="d-bl" class="d-bl"></p>
+      <div id="d-scores" class="d-scores"></div>
+      <p id="d-txt" class="d-txt"></p>
+    </aside>
+  </div>
+
+  <footer id="statusbar">
+    <span id="status">lade Daten …</span>
+    <span class="sep">·</span>
+    <span class="note">Score = relative Fund-Wahrscheinlichkeit, keine Garantie.
+      Saison (0–5) + Wetter (0–5). Wetter: DWD Open Data. Regionen = Nähe zur Station.</span>
+  </footer>
+
+  <div id="help-overlay" hidden>
+    <div class="help-card" role="dialog" aria-modal="true" aria-labelledby="help-title">
+      <button id="help-close" class="help-close" aria-label="Schließen">×</button>
+      <h2 id="help-title">Wie funktioniert das?</h2>
+
+      <div class="help-body">
+        <p>Die <strong>Farbe einer Region</strong> zeigt, wie wahrscheinlich dort gerade
+          Pilzfunde sind: <span class="hl-g">grün</span> = gute Chancen,
+          <span class="hl-r">rot</span> = schlechte.</p>
+
+        <p>Grundlage ist ein <strong>wissenschaftlich validierter Algorithmus</strong>
+          (siehe Details unten), der anhand von Wetterdaten der jeweiligen Wetterstation
+          die Wahrscheinlichkeit für Pilzfunde ausgibt.</p>
+
+        <div id="fig-validierung-top"></div>
+
+        <p>Oben schaltest du zwischen <strong>allen Pilzen</strong> und gezielt
+          <strong>Steinpilzen</strong> um. Ein Klick auf eine Region zeigt zwei Werte: die
+          <strong>Saison</strong> (wie gut die Jahreszeit grundsätzlich ist) und das
+          <strong>Wetter</strong> (wie gut die letzten Wochen waren) – dazu ein kurzer
+          Klartext.</p>
+
+        <p class="help-note">Der Wert ist eine <em>relative Wahrscheinlichkeit</em>,
+          keine Garantie.</p>
+
+        <button id="help-more-btn" class="help-more-btn">Ich will mehr wissen!</button>
+
+        <div id="help-more" hidden>
+          <p>Hinter der Karte steckt ein <strong>wissenschaftlich erarbeitetes</strong>
+            statistisches Modell. Aus umfangreichen historischen Funddaten wurde gelernt,
+            wie das Pilzaufkommen mit dem Wetter zusammenhängt.</p>
+
+          <p>Der Score besteht aus zwei Teilen:</p>
+          <ul>
+            <li><strong>Saison (0–5):</strong> die typische Jahreszeit-Kurve mit
+              Höhepunkt im Oktober.</li>
+            <li><strong>Wetter (0–5):</strong> ein Modell für den zusätzlichen Einfluss des
+              Wetters – das Modell nutzt Parameter wie Temperatur, Niederschlag,
+              Luftfeuchtigkeit, Sonnenscheindauer, Hitze und Frost, um die Wahrscheinlichkeit
+              für Pilzfunde zu berechnen.</li>
+          </ul>
+
+          <p>Steinpilze reagieren <strong>empfindlicher auf Kälte und Hitze</strong> als der
+            Durchschnitt – dafür gibt es ein eigenes Modell.</p>
+
+          <h3 class="help-sub">Wie gut funktioniert es?</h3>
+          <p>Das Modell wurde an
+            <strong>unabhängigen, echten Pilz-Felddaten</strong> geprüft – also nicht an den
+            Daten, mit denen es erstellt wurde. Es trennt Tage mit Funden zuverlässig von
+            fundlosen Tagen (AUC 0,76).</p>
+
+          <figure class="help-fig" id="fig-validierung">
+            <svg viewBox="0 0 340 212" role="img"
+                 aria-label="Balkendiagramm: höherer Wetter-Score, mehr tatsächlich gefundene Steinpilze im Oktober">
+              <!-- Gitterlinien + y-Achsenbeschriftung (Ø Fruchtkörper/Tag) -->
+              <g stroke="#2c3a2f" stroke-width="1">
+                <line x1="46" y1="15" x2="332" y2="15"></line>
+                <line x1="46" y1="66.7" x2="332" y2="66.7"></line>
+                <line x1="46" y1="118.3" x2="332" y2="118.3"></line>
+                <line x1="46" y1="170" x2="332" y2="170"></line>
+              </g>
+              <g font-size="9" fill="#9bb0a0" text-anchor="end" font-family="system-ui, sans-serif">
+                <text x="40" y="173">0</text>
+                <text x="40" y="121.3">1</text>
+                <text x="40" y="69.7">2</text>
+                <text x="40" y="18">3</text>
+              </g>
+              <!-- Balken (Farbe = Score-Skala der Karte) -->
+              <g>
+                <rect x="64" y="168" width="46" height="2" fill="hsl(36 65% 47%)"></rect>
+                <rect x="134" y="159.3" width="46" height="10.7" fill="hsl(60 65% 47%)"></rect>
+                <rect x="204" y="53.1" width="46" height="116.9" fill="hsl(84 65% 47%)"></rect>
+                <rect x="274" y="31.5" width="46" height="138.5" fill="hsl(108 60% 45%)"></rect>
+              </g>
+              <!-- Werte über den Balken -->
+              <g font-size="9.5" font-weight="700" fill="#eaf2ea" text-anchor="middle"
+                 font-family="system-ui, sans-serif">
+                <text x="87" y="162">0,0</text>
+                <text x="157" y="152">0,2</text>
+                <text x="227" y="47">2,3</text>
+                <text x="297" y="25">2,7</text>
+              </g>
+              <!-- x-Achsenbeschriftung (Wetter-Score-Bereiche) -->
+              <g font-size="9.5" fill="#9bb0a0" text-anchor="middle"
+                 font-family="system-ui, sans-serif">
+                <text x="87" y="184">1–2</text>
+                <text x="157" y="184">2–3</text>
+                <text x="227" y="184">3–4</text>
+                <text x="297" y="184">4–5</text>
+                <text x="189" y="204" fill="#eaf2ea">Wetter-Score (Steinpilz, 0–5)</text>
+              </g>
+            </svg>
+            <figcaption>Prüfung an unabhängigen, echten Pilz-Felddaten (nur Oktober):
+              Je höher der Wetter-Score, desto mehr Steinpilze wurden tatsächlich gefunden
+              (Ø Fruchtkörper pro Tag).</figcaption>
+          </figure>
+
+          <p class="help-note">Die Wetterdaten stammen vom Deutschen Wetterdienst (DWD,
+            Open Data). Nicht erfasst sind lokale Gegebenheiten wie Boden oder Baumbestand –
+            die Karte zeigt daher regionale Tendenzen, keine punktgenaue Vorhersage.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
+  <script src="app.js?v=6"></script>
+
+  <!-- Traffic-Messung (GoatCounter, cookie-frei). Zaehlt nicht auf localhost. -->
+  <script data-goatcounter="https://fichl.goatcounter.com/count"
+          async src="//gc.zgo.at/count.js"></script>
+</body>
+</html>
